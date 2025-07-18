@@ -27,7 +27,7 @@ Before implementing solutions to complex problems:
 ## Dependency Management
 
 - **ALWAYS use `uv`** for Python dependency management in this project
-- To add dependencies: `cd` to the specific project directory (e.g., `my-ai-v2/core-platform`) and run `uv add <package>`
+- To add dependencies: `cd` to the specific project directory and run `uv add <package>`
 - This ensures proper dependency resolution and updates both `pyproject.toml` and `uv.lock`
 - Never manually edit `pyproject.toml` dependencies - always use `uv add`
 
@@ -47,16 +47,9 @@ Before implementing solutions to complex problems:
 - Use `# type: ignore` for Reflex dynamic methods
 - For complex type ignores, use `# pyright: ignore[specificError]`
 - When working with Reflex state setters in lambdas, keep them on one line to avoid pyright errors
-- The project uses ruff for formatting and linting - settings in `/my-ai/ruff.toml`
+- The project uses ruff for formatting and linting - settings in `ruff.toml`
 - VSCode is configured to format on save with ruff
 - **IMPORTANT**: All files must end with a newline character (add blank line at EOF)
-
-## Reflex-Specific Patterns
-
-- Use `State.collection.contains(item)` instead of `item.to(str).contains_in(State.collection)`
-- Avoid nested `rx.cond()` with lambda functions in event handlers
-- For URL parameters in callbacks, use `rx.Var("new URLSearchParams(window.location.search).get('param')")`
-- Dynamic state setters like `set_show_right_panel` are generated at runtime - use type ignores when needed
 
 ## Dev Environment Tips
 
@@ -74,27 +67,12 @@ After making code changes, you MUST:
 
 1. **Run `make check`** - This catches syntax, linting, and type errors
 2. **Start the affected service** - This catches runtime errors and invalid API usage
-   - For web app: `make web` (runs on port 3100)
-   - For BFF: `make bff` (runs on port 8200)
-   - For core: `make core` (runs on port 8100)
 3. **Test basic functionality** - Send a test request or verify the service starts cleanly
 4. **Stop the service** - Use Ctrl+C or kill the process
    - IMPORTANT: Always stop services you start to free up ports
 
-### Example Testing Workflow
-
-```bash
-# After editing Reflex app code:
-make check                    # Check for syntax/type errors
-make web                      # Start the web app
-# Wait for "App running at: http://localhost:3100/"
-# If startup fails, fix the error
-# If startup succeeds, Ctrl+C to stop
-```
-
 ### Common Runtime Errors Not Caught by `make check`
 
-- Using non-existent decorators (e.g., `@rx.background` when it doesn't exist)
 - Invalid API calls to external libraries
 - Import errors from circular dependencies
 - Configuration or environment errors
