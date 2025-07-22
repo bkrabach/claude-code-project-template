@@ -27,7 +27,8 @@ Where:
    - **Always report** what was discovered before proceeding
    - **Auto-start** if static HTML found but not served (with user confirmation)
 2. **Test** - Interact with core UI elements based on what's discovered
-3. **Report** - Summarize findings in a simple, actionable format
+3. **Cleanup** - Close browser tabs and stop any servers started during testing
+4. **Report** - Summarize findings in a simple, actionable format
 
 ## Output Format
 
@@ -59,6 +60,8 @@ Where:
   ```
 - Focus on core functionality first, then visual design
 - Keep browser sessions open only if debugging errors or complex state
+- **Always cleanup**: Close browser tabs with `browser_close_tab` after testing
+- **Server cleanup**: Always kill any servers started during testing using saved PID
 
 ## Visual Testing Focus
 
