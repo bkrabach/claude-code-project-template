@@ -45,19 +45,41 @@ Where:
 ## Notes
 
 - Test UI as a user would, analyzing both functionality and design aesthetics
-- **Server pattern** to avoid timeouts:
+- **Server startup patterns** to avoid 2-minute timeouts:
+
+  **Pattern 1: nohup with timeout (recommended)**
+
   ```bash
-  # Start server without blocking (returns immediately)
-  (cd test-app && exec python3 -m http.server 8002 > /dev/null 2>&1) &
-  
-  # Get PID for cleanup
-  SERVER_PID=$(lsof -i :8002 | grep LISTEN | awk '{print $2}')
-  
-  # ... do testing ...
-  
-  # Clean up
-  kill $SERVER_PID 2>/dev/null || true
+  # Start service and return immediately (use 5000ms timeout)
+  cd service-dir && nohup command > /tmp/service.log 2>&1 & echo $!
+  # Store PID: SERVICE_PID=<returned_pid>
   ```
+
+  **Pattern 2: disown method**
+
+  ```bash
+  # Alternative approach (use 3000ms timeout)
+  cd service-dir && command > /tmp/service.log 2>&1 & PID=$! && disown && echo $PID
+  ```
+
+  **Pattern 3: Simple HTTP servers**
+
+  ```bash
+  # For static files, still use subshell pattern (returns immediately)
+  (cd test-app && exec python3 -m http.server 8002 > /dev/null 2>&1) &
+  SERVER_PID=$(lsof -i :8002 | grep LISTEN | awk '{print $2}')
+  ```
+
+  **Important**: Always add `timeout` parameter (3000-5000ms) when using Bash tool for service startup
+
+  **Health check pattern**
+
+  ```bash
+  # Wait briefly then verify service is running
+  sleep 2 && curl -s http://localhost:PORT/health
+  ```
+
+- Clean up services when done: `kill $PID 2>/dev/null || true`
 - Focus on core functionality first, then visual design
 - Keep browser sessions open only if debugging errors or complex state
 - **Always cleanup**: Close browser tabs with `browser_close_tab` after testing
