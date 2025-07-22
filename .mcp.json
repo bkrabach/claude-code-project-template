@@ -3,6 +3,13 @@
     "context7": {
       "type": "sse",
       "url": "https://mcp.context7.com/sse"
+    },
+    "browser-use": {
+      "command": "uvx",
+      "args": ["browser-use[cli]", "--mcp"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
     }
   }
 }
