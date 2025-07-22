@@ -44,8 +44,10 @@ debug_log "JSON input received: $JSON_INPUT"
 debug_log "Parsing JSON fields..."
 MESSAGE=$(echo "$JSON_INPUT" | grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 CWD=$(echo "$JSON_INPUT" | grep -o '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+SESSION_ID=$(echo "$JSON_INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 debug_log "Parsed MESSAGE: $MESSAGE"
 debug_log "Parsed CWD: $CWD"
+debug_log "Parsed SESSION_ID: $SESSION_ID"
 
 # Get project name from cwd
 PROJECT=""
@@ -74,10 +76,19 @@ APP_NAME="Claude Code"
 # Fallback if message is empty
 [[ -z "$MESSAGE" ]] && MESSAGE="Notification"
 
+# Add session info to help identify which terminal/tab
+SESSION_SHORT=""
+if [[ -n "$SESSION_ID" ]]; then
+    # Get last 6 chars of session ID for display
+    SESSION_SHORT="${SESSION_ID: -6}"
+    debug_log "Session short ID: $SESSION_SHORT"
+fi
+
 debug_log "Final values:"
 debug_log "  APP_NAME: $APP_NAME"
 debug_log "  PROJECT: $PROJECT"
 debug_log "  MESSAGE: $MESSAGE"
+debug_log "  SESSION_SHORT: $SESSION_SHORT"
 
 # Platform-specific notification
 PLATFORM="$(uname -s)"
@@ -85,7 +96,7 @@ debug_log "Detected platform: $PLATFORM"
 case "$PLATFORM" in
     Darwin*)  # macOS
         if [[ -n "$PROJECT" ]]; then
-            osascript -e "display notification \"$MESSAGE\" with title \"$APP_NAME\" subtitle \"$PROJECT\""
+            osascript -e "display notification \"$MESSAGE\" with title \"$APP_NAME\" subtitle \"$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}\""
         else
             osascript -e "display notification \"$MESSAGE\" with title \"$APP_NAME\""
         fi
@@ -107,7 +118,7 @@ case "$PLATFORM" in
                     \$APP_ID = '$APP_NAME'
                     \$template = @\"
 <toast><visual><binding template='ToastText02'>
-    <text id='1'>$PROJECT</text>
+    <text id='1'>$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}</text>
     <text id='2'>$MESSAGE</text>
 </binding></visual></toast>
 \"@
@@ -115,7 +126,7 @@ case "$PLATFORM" in
                     \$xml.LoadXml(\$template)
                     \$toast = New-Object Windows.UI.Notifications.ToastNotification \$xml
                     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier(\$APP_ID).Show(\$toast)
-                " 2>/dev/null || echo "[$PROJECT] $MESSAGE"
+                " 2>/dev/null || echo "[$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}] $MESSAGE"
             else
                 debug_log "Sending WSL notification without project (message only)"
                 powershell.exe -Command "
@@ -139,13 +150,13 @@ case "$PLATFORM" in
             # Native Linux - use notify-send
             if command -v notify-send >/dev/null 2>&1; then
                 if [[ -n "$PROJECT" ]]; then
-                    notify-send "<b>$PROJECT</b>" "$MESSAGE"
+                    notify-send "<b>$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}</b>" "$MESSAGE"
                 else
                     notify-send "Claude Code" "$MESSAGE"
                 fi
             else
                 if [[ -n "$PROJECT" ]]; then
-                    echo "[$PROJECT] $MESSAGE"
+                    echo "[$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}] $MESSAGE"
                 else
                     echo "$MESSAGE"
                 fi
@@ -163,7 +174,7 @@ case "$PLATFORM" in
                 \$APP_ID = '$APP_NAME'
                 \$template = @\"
 <toast><visual><binding template='ToastText02'>
-    <text id='1'>$PROJECT</text>
+    <text id='1'>$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}</text>
     <text id='2'>$MESSAGE</text>
 </binding></visual></toast>
 \"@
@@ -171,7 +182,7 @@ case "$PLATFORM" in
                 \$xml.LoadXml(\$template)
                 \$toast = New-Object Windows.UI.Notifications.ToastNotification \$xml
                 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier(\$APP_ID).Show(\$toast)
-            " 2>/dev/null || echo "[$PROJECT] $MESSAGE"
+            " 2>/dev/null || echo "[$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}] $MESSAGE"
         else
             powershell.exe -Command "
                 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
@@ -194,7 +205,7 @@ case "$PLATFORM" in
 
     *)  # Unknown OS
         if [[ -n "$PROJECT" ]]; then
-            echo "[$PROJECT] $MESSAGE"
+            echo "[$PROJECT${SESSION_SHORT:+ ($SESSION_SHORT)}] $MESSAGE"
         else
             echo "$MESSAGE"
         fi
