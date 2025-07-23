@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "make check"
+            "command": ".claude/tools/make-check.sh"
           }
         ]
       }
