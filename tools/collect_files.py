@@ -5,6 +5,8 @@ Collect Files Utility
 Recursively scans the specified file/directory patterns and outputs a single Markdown
 document containing each file's relative path and its content.
 
+This tool helps aggregate source code files for analysis or documentation purposes.
+
 Usage examples:
   # Collect all Python files in the current directory:
   python collect_files.py *.py > my_python_files.md

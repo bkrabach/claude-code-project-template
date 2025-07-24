@@ -2,6 +2,10 @@
 
 # Claude Code make check hook script
 # Intelligently finds and runs 'make check' from the appropriate directory
+
+# Ensure proper environment for make to find /bin/sh
+export PATH="/bin:/usr/bin:$PATH"
+export SHELL="/bin/bash"
 #
 # Expected JSON input format from stdin:
 # {
@@ -25,31 +29,35 @@ set -euo pipefail
 # Read JSON from stdin
 JSON_INPUT=$(cat)
 
+# Debug: Log the JSON input to a file (comment out in production)
+# echo "DEBUG: JSON received at $(date):" >> /tmp/make-check-debug.log
+# echo "$JSON_INPUT" >> /tmp/make-check-debug.log
+
 # Parse fields from JSON (using simple grep/sed for portability)
-CWD=$(echo "$JSON_INPUT" | grep -o '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-TOOL_NAME=$(echo "$JSON_INPUT" | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+CWD=$(echo "$JSON_INPUT" | grep -o '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
+TOOL_NAME=$(echo "$JSON_INPUT" | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
 
 # Check if tool operation was successful
-SUCCESS=$(echo "$JSON_INPUT" | grep -o '"success"[[:space:]]*:[[:space:]]*[^,}]*' | sed 's/.*"success"[[:space:]]*:[[:space:]]*\([^,}]*\).*/\1/')
+SUCCESS=$(echo "$JSON_INPUT" | grep -o '"success"[[:space:]]*:[[:space:]]*[^,}]*' | sed 's/.*"success"[[:space:]]*:[[:space:]]*\([^,}]*\).*/\1/' || echo "")
 
 # Extract file_path from tool_input if available
 FILE_PATH=$(echo "$JSON_INPUT" | grep -o '"tool_input"[[:space:]]*:[[:space:]]*{[^}]*}' | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || true)
 
 # If tool operation failed, exit early
-if [[ "$SUCCESS" == "false" ]]; then
+if [[ "${SUCCESS:-}" == "false" ]]; then
     echo "Skipping 'make check' - tool operation failed"
     exit 0
 fi
 
 # Log what tool was used
-if [[ -n "$TOOL_NAME" ]]; then
+if [[ -n "${TOOL_NAME:-}" ]]; then
     echo "Post-hook for $TOOL_NAME tool"
 fi
 
 # Determine the starting directory
 # Priority: 1) Directory of edited file, 2) CWD, 3) Current directory
 START_DIR=""
-if [[ -n "$FILE_PATH" ]]; then
+if [[ -n "${FILE_PATH:-}" ]]; then
     # Use directory of the edited file
     FILE_DIR=$(dirname "$FILE_PATH")
     if [[ -d "$FILE_DIR" ]]; then
@@ -58,7 +66,7 @@ if [[ -n "$FILE_PATH" ]]; then
     fi
 fi
 
-if [[ -z "$START_DIR" ]] && [[ -n "$CWD" ]]; then
+if [[ -z "$START_DIR" ]] && [[ -n "${CWD:-}" ]]; then
     START_DIR="$CWD"
 elif [[ -z "$START_DIR" ]]; then
     START_DIR=$(pwd)
